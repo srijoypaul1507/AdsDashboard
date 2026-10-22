@@ -126,7 +126,20 @@ class FilterBar extends React.Component {
           onChange={p.onMeetingChange}
         />
         <div className="filter">
-          <label className="filter-label" htmlFor="city">City</label>
+          <div className="filter-label-row">
+            <label className="filter-label" htmlFor="city">City</label>
+            {p.citySettingsUrl && (
+              <a
+                className="filter-link"
+                href={p.citySettingsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Which salesperson counts for which city, and from when (Zoho CRM, admins only)"
+              >
+                Settings
+              </a>
+            )}
+          </div>
           <select id="city" className="control" value={p.city} onChange={(e) => p.onCityChange(e.target.value)}>
             <option value="">All Cities</option>
             {p.cities.map((c) => (

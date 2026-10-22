@@ -10,7 +10,7 @@ const API_BASE =
     : "https://2onghku7vk.execute-api.ap-south-1.amazonaws.com/dev";
 // API Gateway gives up at 29s; stop waiting just before that.
 const REQUEST_TIMEOUT_MS = 28000;
-const DEFAULT_CITIES = ["Bangalore", "Hyderabad", "Hossur"];
+const DEFAULT_CITIES = ["Bangalore", "Hyderabad", "Hosur"];
 
 async function readJson(response) {
   let body = null;
@@ -38,13 +38,17 @@ async function fetchDashboard({ startDate, endDate, mStartDate, mEndDate, city }
   return readJson(response);
 }
 
-// City list from the backend; null if unavailable, keeping the defaults.
-async function fetchCities() {
+// Filter options from the backend: the city list (from the City Mapping in Zoho) and the link
+// to that mapping. null if unavailable, keeping the defaults.
+async function fetchConfig() {
   try {
     const response = await fetch(`${API_BASE}/app/config`);
     if (!response.ok) return null;
     const body = await response.json();
-    return Array.isArray(body.cities) && body.cities.length ? body.cities : null;
+    return {
+      cities: Array.isArray(body.cities) && body.cities.length ? body.cities : null,
+      citySettingsUrl: typeof body.citySettingsUrl === "string" ? body.citySettingsUrl : null,
+    };
   } catch (e) {
     return null;
   }

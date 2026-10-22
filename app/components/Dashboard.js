@@ -15,6 +15,7 @@ class Dashboard extends React.Component {
       mEndDate: null,
       city: "",
       cities: DEFAULT_CITIES,
+      citySettingsUrl: null,
       page: "comparison", // Combined View, as before
       interval: "daily",
       data: null,
@@ -28,8 +29,12 @@ class Dashboard extends React.Component {
 
   componentDidMount() {
     this.loadData(this.currentRequest());
-    fetchCities().then((cities) => {
-      if (cities) this.setState({ cities });
+    fetchConfig().then((config) => {
+      if (!config) return;
+      this.setState({
+        ...(config.cities ? { cities: config.cities } : {}),
+        citySettingsUrl: config.citySettingsUrl,
+      });
     });
   }
 
@@ -158,6 +163,7 @@ class Dashboard extends React.Component {
           mEndDate={s.mEndDate}
           city={s.city}
           cities={s.cities}
+          citySettingsUrl={s.citySettingsUrl}
           interval={s.interval}
           onDateChange={this.handleDateChange}
           onMeetingChange={this.handleMeetingChange}
