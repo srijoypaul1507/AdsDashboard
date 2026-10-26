@@ -13,6 +13,7 @@ class Dashboard extends React.Component {
       meetingPreset: "none",
       mStartDate: null,
       mEndDate: null,
+      leadPresetBeforeMeetings: "today", // restored when Check Meetings is cleared
       city: "",
       cities: DEFAULT_CITIES,
       citySettingsUrl: null,
@@ -42,35 +43,67 @@ class Dashboard extends React.Component {
     if (this.abortController) this.abortController.abort();
   }
 
+  // Lead Date Range and Check Meetings are either/or: a meeting range switches the dashboard to
+  // meeting done dates (no lead counts); a lead range switches it back.
   currentRequest(overrides = {}) {
     const s = { ...this.state, ...overrides };
-    return {
-      startDate: s.startDate,
-      endDate: s.endDate,
-      mStartDate: s.mStartDate,
-      mEndDate: s.mEndDate,
-      city: s.city,
-    };
+    if (s.meetingPreset !== "none" && s.mStartDate && s.mEndDate) {
+      return { by: "meeting", startDate: s.mStartDate, endDate: s.mEndDate, city: s.city };
+    }
+    return { by: "lead", startDate: s.startDate, endDate: s.endDate, city: s.city };
   }
 
   // ---------- filter handlers ----------
 
   handleDateChange = (preset, start, end) => {
+    if (preset === "none") return; // "Not used" is only shown while Check Meetings is set
     if (!start) {
       this.setState({ datePreset: preset }); // "custom" chosen: wait for Apply
       return;
     }
-    const next = { datePreset: preset, startDate: start, endDate: end };
+    // A lead range ends the meeting view.
+    const next = { datePreset: preset, startDate: start, endDate: end, meetingPreset: "none", mStartDate: null, mEndDate: null };
     this.setState(next);
     this.loadData(this.currentRequest(next));
   };
 
   handleMeetingChange = (preset, start, end) => {
+    const s = this.state;
     if (preset === "custom" && !start) {
-      this.setState({ meetingPreset: preset });
+      this.setState({ meetingPreset: preset }); // wait for Apply
       return;
     }
-    const next = { meetingPreset: preset, mStartDate: start, mEndDate: end };
+    let next;
+    if (preset === "none") {
+      // Back to the lead view with the lead range used before.
+      next = { meetingPreset: "none", mStartDate: null, mEndDate: null };
+      if (s.datePreset === "none") {
+        const range = presetRange(s.leadPresetBeforeMeetings);
+        next.datePreset = range ? s.leadPresetBeforeMeetings : "custom";
+        if (range) [next.startDate, next.endDate] = range;
+      }
+    } else {
+      next = {
+        meetingPreset: preset,
+        mStartDate: start,
+        mEndDate: end,
+        datePreset: "none",
+        leadPresetBeforeMeetings: s.datePreset !== "none" ? s.datePreset : s.leadPresetBeforeMeetings,
+      };
+    }
+    this.setState(next);
+    this.loadData(this.currentRequest(next));
+  };
+
+  // Back to the starting filters: leads created today, no meeting range, all cities.
+  clearFilters = () => {
+    const [startDate, endDate] = presetRange("today");
+    const next = {
+      datePreset: "today", startDate, endDate,
+      meetingPreset: "none", mStartDate: null, mEndDate: null,
+      leadPresetBeforeMeetings: "today",
+      city: "",
+    };
     this.setState(next);
     this.loadData(this.currentRequest(next));
   };
@@ -130,6 +163,8 @@ class Dashboard extends React.Component {
 
   render() {
     const s = this.state;
+    // Layout follows the data on screen: a meeting-date response has no lead counts.
+    const meetingView = Boolean(s.loadedRange && s.loadedRange.by === "meeting");
     const metrics = s.data ? computeMetrics(s.data, s.page) : null;
     const series = s.data ? computeSeries(s.data, s.page, s.interval) : null;
     const breakdown = s.data && (s.page === "comparison" || s.page === "socials") ? sourceBreakdown(s.data, s.page) : null;
@@ -169,6 +204,7 @@ class Dashboard extends React.Component {
           onMeetingChange={this.handleMeetingChange}
           onCityChange={this.handleCityChange}
           onIntervalChange={(interval) => this.setState({ interval })}
+          onClear={this.clearFilters}
         />
 
         <SourceTabs value={s.page} onChange={(page) => this.setState({ page })} />
@@ -176,7 +212,7 @@ class Dashboard extends React.Component {
         <StatusBar error={s.error} warnings={s.warnings} onRetry={this.refresh} />
 
         <main className={s.loading && s.data ? "content is-refreshing" : "content"} aria-busy={s.loading}>
-          <KpiTiles metrics={metrics} />
+          <KpiTiles metrics={metrics} meetingView={meetingView} />
 
           <div className="grid-2">
             <TrendChart
@@ -188,13 +224,13 @@ class Dashboard extends React.Component {
               series={[{ label: "Budget", data: sr.spend, colorVar: "--series-1" }]}
             />
             <TrendChart
-              title="Leads, Meetings Done and Qualified"
-              subtitle={sourceLabel}
+              title={meetingView ? "Meetings Done and Qualified" : "Leads, Meetings Done and Qualified"}
+              subtitle={meetingView ? `${sourceLabel} · by meeting date` : sourceLabel}
               kind="line"
               format="count"
               labels={sr.labels}
               series={[
-                { label: "Leads", data: sr.leads, colorVar: "--series-1" },
+                ...(meetingView ? [] : [{ label: "Leads", data: sr.leads, colorVar: "--series-1" }]),
                 { label: "Meetings Done", data: sr.meetings, colorVar: "--series-2" },
                 { label: "Qualified", data: sr.qualified, colorVar: "--series-3" },
               ]}
@@ -202,18 +238,29 @@ class Dashboard extends React.Component {
           </div>
 
           <div className={breakdown ? "grid-2" : "grid-1"}>
-            <TrendChart
-              title="Cost/Lead over time"
-              subtitle={`${sourceLabel} · budget ÷ leads`}
-              kind="line"
-              format="money"
-              labels={sr.labels}
-              series={[{ label: "Cost/Lead", data: sr.cpl, colorVar: "--series-1" }]}
-            />
-            {breakdown && <SourceTable rows={breakdown} />}
+            {meetingView ? (
+              <TrendChart
+                title="Cost/Meeting over time"
+                subtitle={`${sourceLabel} · budget ÷ meetings done`}
+                kind="line"
+                format="money"
+                labels={sr.labels}
+                series={[{ label: "Cost/Meeting", data: sr.spend.map((v, i) => ratio(v, sr.meetings[i])), colorVar: "--series-1" }]}
+              />
+            ) : (
+              <TrendChart
+                title="Cost/Lead over time"
+                subtitle={`${sourceLabel} · budget ÷ leads`}
+                kind="line"
+                format="money"
+                labels={sr.labels}
+                series={[{ label: "Cost/Lead", data: sr.cpl, colorVar: "--series-1" }]}
+              />
+            )}
+            {breakdown && <SourceTable rows={breakdown} meetingView={meetingView} />}
           </div>
 
-          {series && <PeriodTable series={series} metrics={metrics} interval={s.interval} />}
+          {series && <PeriodTable series={series} metrics={metrics} interval={s.interval} meetingView={meetingView} />}
 
           {!s.data && s.loading && <div className="loading-note">Loading data…</div>}
         </main>

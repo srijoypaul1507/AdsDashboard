@@ -59,3 +59,4 @@ coverage/
 *.swp
 *.swo
 *.swn
+app/widget.local.html

@@ -29,9 +29,10 @@ async function readJson(response) {
   return body;
 }
 
-async function fetchDashboard({ startDate, endDate, mStartDate, mEndDate, city }, signal) {
+// `by: "meeting"` means startDate/endDate are meeting done dates (the Check Meetings view).
+async function fetchDashboard({ startDate, endDate, by, city }, signal) {
   const params = [];
-  if (mStartDate && mEndDate) params.push(`mstart=${mStartDate}`, `mend=${mEndDate}`);
+  if (by === "meeting") params.push("by=meeting");
   if (city) params.push(`city=${encodeURIComponent(city)}`);
   const query = params.length ? `?${params.join("&")}` : "";
   const response = await fetch(`${API_BASE}/app/dashboard/${startDate}/${endDate}${query}`, { signal });
@@ -105,10 +106,7 @@ function describeRange(r) {
   const range = r.startDate === r.endDate
     ? prettyDate(r.startDate)
     : `${prettyDate(r.startDate)} – ${prettyDate(r.endDate)}`;
-  const parts = [range];
-  if (r.mStartDate && r.mEndDate) {
-    parts.push(`meetings ${prettyDate(r.mStartDate)} – ${prettyDate(r.mEndDate)}`);
-  }
+  const parts = [r.by === "meeting" ? `Meetings ${range}` : `Leads ${range}`];
   parts.push(r.city || "All Cities");
   return parts.join(" · ");
 }

@@ -34,17 +34,19 @@ class KpiTile extends React.Component {
 }
 
 // Headline KPIs (budget → leads → meetings) and the lead-quality row below them.
+// In the meeting view (`meetingView`) there are no lead counts, so Leads and Cost/Lead are left out.
 class KpiTiles extends React.Component {
   render() {
     const m = this.props.metrics;
+    const meetingView = this.props.meetingView;
     const v = (x, fmt) => (m ? fmt(x) : "–");
     const money = (x) => v(x, formatRupees);
     return (
       <section className="kpis" aria-label="Key metrics">
-        <div className="kpi-row kpi-row-primary">
+        <div className={meetingView ? "kpi-row kpi-row-primary kpi-row-3" : "kpi-row kpi-row-primary"}>
           <KpiTile primary label="Budget" value={money(m && m.spend)} hint="incl. GST" />
-          <KpiTile primary label="Leads" value={v(m && m.leads, formatCount)} />
-          <KpiTile primary label="Cost/Lead" value={money(m && m.cpl)} />
+          {!meetingView && <KpiTile primary label="Leads" value={v(m && m.leads, formatCount)} />}
+          {!meetingView && <KpiTile primary label="Cost/Lead" value={money(m && m.cpl)} />}
           <KpiTile primary label="Meetings Done" value={v(m && m.meetings, formatCount)} />
           <KpiTile primary label="Cost/Meeting" value={money(m && m.cpm)} />
         </div>

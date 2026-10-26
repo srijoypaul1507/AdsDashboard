@@ -1,14 +1,15 @@
 // Spend, leads and costs per source, with an inline bar for each source's share of spend.
+// `meetingView` leaves out the lead columns (the Check Meetings view has no lead counts).
 class SourceTable extends React.Component {
   render() {
-    const rows = this.props.rows;
+    const { rows, meetingView } = this.props;
     const maxSpend = Math.max(1, ...rows.map((r) => r.spend));
     return (
       <div className="card">
         <div className="card-head">
           <div>
             <h3 className="card-title">By source</h3>
-            <p className="card-subtitle">Budget, leads and cost for each source</p>
+            <p className="card-subtitle">{meetingView ? "Budget, meetings and cost for each source" : "Budget, leads and cost for each source"}</p>
           </div>
         </div>
         <div className="table-wrap">
@@ -17,8 +18,8 @@ class SourceTable extends React.Component {
               <tr>
                 <th>Source</th>
                 <th className="num">Budget</th>
-                <th className="num">Leads</th>
-                <th className="num">Cost/Lead</th>
+                {!meetingView && <th className="num">Leads</th>}
+                {!meetingView && <th className="num">Cost/Lead</th>}
                 <th className="num">Meetings Done</th>
                 <th className="num">Qualified</th>
                 <th className="num">Cost/Qualified</th>
@@ -36,8 +37,8 @@ class SourceTable extends React.Component {
                       <span>{formatRupees(r.spend)}</span>
                     </div>
                   </td>
-                  <td className="num">{formatCount(r.leads)}</td>
-                  <td className="num">{formatRupees(r.cpl)}</td>
+                  {!meetingView && <td className="num">{formatCount(r.leads)}</td>}
+                  {!meetingView && <td className="num">{formatRupees(r.cpl)}</td>}
                   <td className="num">{formatCount(r.meetings)}</td>
                   <td className="num">{formatCount(r.qualified)}</td>
                   <td className="num">{formatRupees(r.cpq)}</td>
@@ -54,7 +55,7 @@ class SourceTable extends React.Component {
 // Period-by-period numbers behind the charts, newest first, with a totals row.
 class PeriodTable extends React.Component {
   render() {
-    const { series, metrics, interval } = this.props;
+    const { series, metrics, interval, meetingView } = this.props;
     const n = series.labels.length;
     const rows = [];
     for (let i = n - 1; i >= 0; i--) {
@@ -82,8 +83,8 @@ class PeriodTable extends React.Component {
               <tr>
                 <th>{unit}</th>
                 <th className="num">Budget</th>
-                <th className="num">Leads</th>
-                <th className="num">Cost/Lead</th>
+                {!meetingView && <th className="num">Leads</th>}
+                {!meetingView && <th className="num">Cost/Lead</th>}
                 <th className="num">Meetings Done</th>
                 <th className="num">Cost/Meeting</th>
                 <th className="num">Qualified</th>
@@ -97,8 +98,8 @@ class PeriodTable extends React.Component {
                 <tr key={i}>
                   <td>{r.label}</td>
                   <td className="num">{formatRupees(r.spend)}</td>
-                  <td className="num">{formatCount(r.leads)}</td>
-                  <td className="num">{formatRupees(ratio(r.spend, r.leads))}</td>
+                  {!meetingView && <td className="num">{formatCount(r.leads)}</td>}
+                  {!meetingView && <td className="num">{formatRupees(ratio(r.spend, r.leads))}</td>}
                   <td className="num">{formatCount(r.meetings)}</td>
                   <td className="num">{formatRupees(ratio(r.spend, r.meetings))}</td>
                   <td className="num">{formatCount(r.qualified)}</td>
@@ -113,8 +114,8 @@ class PeriodTable extends React.Component {
                 <tr>
                   <td>Total</td>
                   <td className="num">{formatRupees(metrics.spend)}</td>
-                  <td className="num">{formatCount(metrics.leads)}</td>
-                  <td className="num">{formatRupees(metrics.cpl)}</td>
+                  {!meetingView && <td className="num">{formatCount(metrics.leads)}</td>}
+                  {!meetingView && <td className="num">{formatRupees(metrics.cpl)}</td>}
                   <td className="num">{formatCount(metrics.meetings)}</td>
                   <td className="num">{formatRupees(metrics.cpm)}</td>
                   <td className="num">{formatCount(metrics.qualified)}</td>

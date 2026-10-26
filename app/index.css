@@ -189,6 +189,8 @@ button, input, select { font: inherit; color: inherit; }
 .kpis { display: flex; flex-direction: column; gap: 12px; }
 .kpi-row { display: grid; gap: 12px; grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .kpi-row-primary { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.kpi-row-primary.kpi-row-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.filter-clear { margin-left: auto; }
 
 .kpi {
   background: var(--surface);

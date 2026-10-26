@@ -109,8 +109,10 @@ class FilterBar extends React.Component {
       <div className="filter-bar">
         <DateRangeControl
           id="lead-range"
-          label="Select Date Range"
+          label="Lead Date Range"
           preset={p.datePreset}
+          allowNone={p.meetingPreset !== "none"}
+          noneLabel="Not used"
           start={p.startDate}
           end={p.endDate}
           onChange={p.onDateChange}
@@ -148,6 +150,9 @@ class FilterBar extends React.Component {
           </select>
         </div>
         <SegmentedControl label="Graph Interval" options={INTERVALS} value={p.interval} onChange={p.onIntervalChange} />
+        <div className="filter filter-clear">
+          <button className="btn" onClick={p.onClear}>Clear filters</button>
+        </div>
       </div>
     );
   }
