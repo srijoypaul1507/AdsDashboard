@@ -95,6 +95,14 @@ class Dashboard extends React.Component {
     this.loadData(this.currentRequest(next));
   };
 
+  // Per-filter Clear links: Lead Date Range back to Today, Check Meetings back to none.
+  clearLeadRange = () => {
+    const [start, end] = presetRange("today");
+    this.handleDateChange("today", start, end);
+  };
+
+  clearMeetings = () => this.handleMeetingChange("none", null, null);
+
   // Back to the starting filters: leads created today, no meeting range, all cities.
   clearFilters = () => {
     const [startDate, endDate] = presetRange("today");
@@ -205,6 +213,8 @@ class Dashboard extends React.Component {
           onCityChange={this.handleCityChange}
           onIntervalChange={(interval) => this.setState({ interval })}
           onClear={this.clearFilters}
+          onClearLead={this.clearLeadRange}
+          onClearMeetings={this.clearMeetings}
         />
 
         <SourceTabs value={s.page} onChange={(page) => this.setState({ page })} />

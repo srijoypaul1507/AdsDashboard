@@ -73,12 +73,15 @@ function addDays(date, days) {
   return d;
 }
 
-// Same presets and meanings as the original dashboard.
+// "Last N Days" ranges end today; "This Month" / "Last Month" are calendar months
+// (Last Month in October = 1–30 September).
 const DATE_PRESETS = [
   { key: "today", label: "Today" },
-  { key: "lastWeek", label: "Last Week" },
+  { key: "last7", label: "Last 7 Days" },
+  { key: "last30", label: "Last 30 Days" },
+  { key: "thisMonth", label: "This Month" },
   { key: "lastMonth", label: "Last Month" },
-  { key: "lastYear", label: "Last Year" },
+  { key: "last12", label: "Last 12 Months" },
   { key: "custom", label: "Custom" },
 ];
 
@@ -88,10 +91,14 @@ function presetRange(key, now = new Date()) {
   const f = formatLocalDate;
   switch (key) {
     case "today": return [f(today), f(today)];
-    // "Last Week/Month/Year" = from the same day a week/month/year ago up to today.
-    case "lastWeek": return [f(addDays(today, -7)), f(today)];
-    case "lastMonth": return [f(new Date(today.getFullYear(), today.getMonth() - 1, today.getDate())), f(today)];
-    case "lastYear": return [f(new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())), f(today)];
+    case "last7": return [f(addDays(today, -6)), f(today)];
+    case "last30": return [f(addDays(today, -29)), f(today)];
+    case "thisMonth": return [f(new Date(today.getFullYear(), today.getMonth(), 1)), f(today)];
+    case "lastMonth": return [
+      f(new Date(today.getFullYear(), today.getMonth() - 1, 1)),
+      f(new Date(today.getFullYear(), today.getMonth(), 0)),
+    ];
+    case "last12": return [f(addDays(new Date(today.getFullYear() - 1, today.getMonth(), today.getDate()), 1)), f(today)];
     default: return null;
   }
 }
@@ -170,18 +177,22 @@ const SOURCES = [
   { key: "facebook", label: "Facebook" },
   { key: "referral", label: "Referral" },
   { key: "cplead", label: "CP Lead" },
+  { key: "other", label: "Others" },
   { key: "comparison", label: "Combined View" },
   { key: "socials", label: "Socials" },
 ];
 
 // API field prefixes behind each tab.
 const SOURCE_PREFIXES = {
-  comparison: ["google", "facebook", "referral", "cplead"],
+  // Others = Direct Call, no source, ERP Lead etc.: no ad spend, but part of the Combined View
+  // so its totals match the Internal / Outside Sales dashboards.
+  comparison: ["google", "facebook", "referral", "cplead", "other"],
   google: ["google"],
   facebook: ["facebook"],
   socials: ["google", "facebook"],
   referral: ["referral"],
   cplead: ["cplead"],
+  other: ["other"],
 };
 
 function sumFields(data, prefixes, suffix) {
@@ -197,6 +208,10 @@ function computeMetrics(data, page) {
   const qualified = sumFields(data, p, "qualified");
   const futureQualified = sumFields(data, p, "future_qualified");
   const conversions = sumFields(data, p, "converted");
+  // Others has no ad spend, so its cost ratios are shown as "–" rather than ₹0.
+  if (page === "other") {
+    return { spend: null, leads, meetings, qualified, futureQualified, conversions, cpl: null, cpm: null, cpq: null, cqf: null, cpc: null, noSpend: true };
+  }
   return {
     spend,
     leads,
@@ -246,13 +261,13 @@ function computeSeries(data, page, interval) {
     }
     for (const k of Object.keys(out)) out[k][out[k].length - 1] += raw[k][i];
   });
-  out.cpl = out.spend.map((s, i) => ratio(s, out.leads[i]));
+  out.cpl = out.spend.map((s, i) => (page === "other" ? null : ratio(s, out.leads[i])));
   return { labels, ...out };
 }
 
 // One row per source, for the Combined / Socials breakdown.
 function sourceBreakdown(data, page) {
-  const keys = page === "socials" ? ["google", "facebook"] : ["google", "facebook", "referral", "cplead"];
+  const keys = page === "socials" ? ["google", "facebook"] : ["google", "facebook", "referral", "cplead", "other"];
   return keys.map((k) => {
     const m = computeMetrics(data, k);
     return { key: k, label: SOURCES.find((s) => s.key === k).label, ...m };

@@ -56,6 +56,8 @@ class SourceTable extends React.Component {
 class PeriodTable extends React.Component {
   render() {
     const { series, metrics, interval, meetingView } = this.props;
+    const noSpend = Boolean(metrics && metrics.noSpend);
+    const money = (spend, n) => (noSpend ? "–" : formatRupees(ratio(spend, n)));
     const n = series.labels.length;
     const rows = [];
     for (let i = n - 1; i >= 0; i--) {
@@ -97,15 +99,15 @@ class PeriodTable extends React.Component {
               {rows.map((r, i) => (
                 <tr key={i}>
                   <td>{r.label}</td>
-                  <td className="num">{formatRupees(r.spend)}</td>
+                  <td className="num">{noSpend ? "–" : formatRupees(r.spend)}</td>
                   {!meetingView && <td className="num">{formatCount(r.leads)}</td>}
-                  {!meetingView && <td className="num">{formatRupees(ratio(r.spend, r.leads))}</td>}
+                  {!meetingView && <td className="num">{money(r.spend, r.leads)}</td>}
                   <td className="num">{formatCount(r.meetings)}</td>
-                  <td className="num">{formatRupees(ratio(r.spend, r.meetings))}</td>
+                  <td className="num">{money(r.spend, r.meetings)}</td>
                   <td className="num">{formatCount(r.qualified)}</td>
-                  <td className="num">{formatRupees(ratio(r.spend, r.qualified))}</td>
+                  <td className="num">{money(r.spend, r.qualified)}</td>
                   <td className="num">{formatCount(r.conversions)}</td>
-                  <td className="num">{formatRupees(ratio(r.spend, r.conversions))}</td>
+                  <td className="num">{money(r.spend, r.conversions)}</td>
                 </tr>
               ))}
             </tbody>

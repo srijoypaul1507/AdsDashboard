@@ -1,5 +1,6 @@
 // A date-range picker: preset list plus a custom From/To range.
 // `allowNone` adds a first option that clears the range (used by the meeting-date filter).
+// `onClear` (when set) shows a "Clear" link next to the label while hovering the filter.
 class DateRangeControl extends React.Component {
   constructor(props) {
     super(props);
@@ -9,7 +10,7 @@ class DateRangeControl extends React.Component {
   handlePreset = (event) => {
     const key = event.target.value;
     if (key === "custom") {
-      const [from, to] = presetRange("lastWeek");
+      const [from, to] = presetRange("last7");
       this.setState({ from: this.props.start || from, to: this.props.end || to });
       this.props.onChange(key, null, null);
       return;
@@ -28,12 +29,19 @@ class DateRangeControl extends React.Component {
   };
 
   render() {
-    const { id, label, preset, allowNone, noneLabel } = this.props;
+    const { id, label, preset, allowNone, noneLabel, onClear } = this.props;
     const { from, to } = this.state;
     const invalid = !from || !to || from > to;
     return (
-      <div className="filter">
-        <label className="filter-label" htmlFor={id}>{label}</label>
+      <div className={onClear ? "filter is-clearable" : "filter"}>
+        <div className="filter-label-row">
+          <label className="filter-label" htmlFor={id}>{label}</label>
+          {onClear && (
+            <button type="button" className="filter-link filter-clear-link" onClick={onClear} aria-label={`Clear ${label}`}>
+              Clear
+            </button>
+          )}
+        </div>
         <div className="filter-row">
           <select id={id} className="control" value={preset} onChange={this.handlePreset}>
             {allowNone && <option value="none">{noneLabel}</option>}
@@ -113,6 +121,7 @@ class FilterBar extends React.Component {
           preset={p.datePreset}
           allowNone={p.meetingPreset !== "none"}
           noneLabel="Not used"
+          onClear={p.datePreset !== "today" && p.datePreset !== "none" ? p.onClearLead : null}
           start={p.startDate}
           end={p.endDate}
           onChange={p.onDateChange}
@@ -126,6 +135,7 @@ class FilterBar extends React.Component {
           start={p.mStartDate}
           end={p.mEndDate}
           onChange={p.onMeetingChange}
+          onClear={p.meetingPreset !== "none" ? p.onClearMeetings : null}
         />
         <div className="filter">
           <div className="filter-label-row">
